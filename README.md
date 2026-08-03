@@ -1,6 +1,14 @@
 # endpoint-finder
 
+[![CI](https://github.com/NOKREM/endpoint-finder/actions/workflows/ci.yml/badge.svg)](https://github.com/NOKREM/endpoint-finder/actions/workflows/ci.yml)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Lint: Ruff](https://img.shields.io/badge/lint-ruff-261230.svg)](https://github.com/astral-sh/ruff)
+[![Code style: Black](https://img.shields.io/badge/style-black-000000.svg)](https://github.com/psf/black)
+
 Passive API endpoint, service address and AJAX request discovery for any web target.
+
+**Repository:** <https://github.com/NOKREM/endpoint-finder>
 
 Give it one URL. It analyses HTML, JavaScript, CSS, source maps, live browser traffic,
 Swagger/OpenAPI documents, GraphQL, ArcGIS REST and OGC (WMS/WMTS/WFS/WCS) services, then
