@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (py${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Format check (black)
+        run: black --check .
+
+      - name: Type check (mypy)
+        run: mypy endpoint_finder
+
+      - name: Test
+        run: pytest -q --tb=short
+
+  smoke:
+    name: end-to-end smoke test
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install with browser support
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[browser]"
+          python -m playwright install --with-deps chromium
+
+      - name: Serve a fixture site
+        run: |
+          mkdir -p fixture
+          cat > fixture/index.html <<'HTML'
+          <!doctype html><html><head><title>Fixture</title>
+          <script src="/app.js"></script></head>
+          <body><form action="/api/v1/search" method="post"></form></body></html>
+          HTML
+          cat > fixture/app.js <<'JS'
+          fetch("/api/v1/users", { method: "POST" });
+          new WebSocket("ws://127.0.0.1:8000/ws");
+          JS
+          (cd fixture && python -m http.server 8000 &)
+          sleep 2
+
+      - name: Scan the fixture site
+        run: endpoint-finder http://127.0.0.1:8000 --depth 0 --no-cache -f json -f html
+
+      - name: Assert the expected endpoints were found
+        run: |
+          python - <<'PY'
+          import json, pathlib, sys
+          report = json.loads(pathlib.Path("output/127.0.0.1.json").read_text())
+          urls = {e["url"] for e in report["endpoints"]}
+          expected = {
+              "http://127.0.0.1:8000/api/v1/users",
+              "http://127.0.0.1:8000/api/v1/search",
+              "ws://127.0.0.1:8000/ws",
+          }
+          missing = expected - urls
+          if missing:
+              sys.exit(f"missing endpoints: {sorted(missing)}")
+          print(f"ok: {len(urls)} endpoints")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: output/
+          retention-days: 7
+
+  docker:
+    name: docker build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t endpoint-finder:ci .
+      - name: Verify the entrypoint
+        run: docker run --rm endpoint-finder:ci --version

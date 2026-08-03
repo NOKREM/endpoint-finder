@@ -1,0 +1,93 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "endpoint-finder"
+version = "1.0.0"
+description = "Passive API endpoint, service address and AJAX request discovery for any web target."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "endpoint-finder contributors" }]
+keywords = ["osint", "api", "discovery", "recon", "swagger", "graphql", "arcgis", "geoserver"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Security",
+]
+
+dependencies = [
+    "httpx[http2]>=0.27",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.2",
+    "parsel>=1.9",
+    "rich>=13.7",
+    "typer>=0.12",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "diskcache>=5.6",
+    "networkx>=3.3",
+    "orjson>=3.10",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+browser = ["playwright>=1.44"]
+selenium = ["selenium>=4.21"]
+pdf = ["reportlab>=4.2"]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+    "black>=24.4",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+all = [
+    "playwright>=1.44",
+    "reportlab>=4.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/example/endpoint-finder"
+Issues = "https://github.com/example/endpoint-finder/issues"
+
+[project.scripts]
+endpoint-finder = "endpoint_finder.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["endpoint_finder"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RET", "PTH", "D"]
+ignore = ["D203", "D213", "E501", "B008", "D401"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D100", "D101", "D102", "D103", "D104"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+warn_unused_ignores = false
